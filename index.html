@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DKHR — Human Resources Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#07080f;color:#dde1ef;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+@keyframes spin{from{opacity:.25;transform:scale(.7)}to{opacity:1;transform:scale(1.1)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes orb1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-40px) scale(1.1)}66%{transform:translate(-30px,30px) scale(.95)}}
+@keyframes orb2{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(-50px,40px) scale(.9)}66%{transform:translate(40px,-30px) scale(1.05)}}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#0c0d18}
+::-webkit-scrollbar-thumb{background:#181a27;border-radius:2px}
+textarea:focus,input:focus,select:focus{border-color:#00e5c8!important;box-shadow:0 0 0 3px #00e5c812!important;outline:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useEffect} = React;
+const {RadarChart,Radar,PolarGrid,PolarAngleAxis,ResponsiveContainer,Tooltip} = Recharts;
+
+// ── Design tokens ──────────────────────────────────────────────────
+const G="#00e5c8",GL="#00c4ab",GD="#00e5c812",BG="#07080f",SF="#0c0d18",CD="#10111c",BD="#181a27",TX="#dde1ef",MT="#525870",DM="#2e3048",SU="#3d7a5c",DA="#7a3d3d";
+const AX={D:"#00e5c8",E:"#5b8ab0",P:"#7c6fbc",N:"#4d8a6c",A:"#a06848"};
+const AXL={D:"#00c4ab",E:"#7aadd4",P:"#9d94e0",N:"#6aad8e",A:"#c48a6a"};
+
+// ── Mock AI responses ──────────────────────────────────────────────
+function mockClaude(type, payload) {
+  if (type === "cv") {
+    const n = payload.count || 2;
+    const names = ["Ana García","Carlos Mendez","Laura Ríos","Diego Torres","Sofía Ruiz"];
+    return Array.from({length:n},(_,i)=>({
+      rank:i+1, candidate:names[i]||`Candidato ${i+1}`,
+      score:Math.round(92-i*10),
+      summary:i===0?"Perfil sólido con experiencia directamente alineada al puesto. Demuestra liderazgo y orientación a resultados medibles.":i===1?"Candidato con buena base técnica y actitud proactiva. Requiere desarrollo en gestión de equipos.":"Perfil en desarrollo con potencial. Requiere acompañamiento inicial.",
+      strengths:i===0?["Liderazgo probado","Orientación a resultados","Comunicación efectiva"]:i===1?["Proactividad","Aprendizaje rápido"]:["Detalle y precisión"],
+      gaps:i===0?["Experiencia internacional"]:i===1?["Gestión de equipos","Visión estratégica"]:["Toma de decisiones","Autonomía"],
+      pda:{D:78-i*12,E:65-i*5,P:55+i*10,N:72-i*4,A:80-i*8},
+      pdaProfile:i===0?"Perfil orientado a resultados con alta capacidad de influencia y estructura.":i===1?"Perfil colaborativo con tendencia analítica y trabajo en equipo.":"Perfil normativo y paciente, ideal para roles de soporte estructurado."
+    }));
+  }
+  if (type === "doc") {
+    const date = new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'});
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOCUMENTO RECURSOS HUMANOS  [MODO DEMO]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Buenos Aires, ${date}
+
+Estimado/a [Nombre del colaborador/a]:
+
+Por medio de la presente, nos complace comunicarle los
+términos acordados para su incorporación a la organización.
+
+POSICIÓN    : [Cargo / Rol]
+ÁREA        : [Departamento]
+REPORTA A   : [Nombre del responsable]
+FECHA INICIO: [DD/MM/AAAA]
+REMUNERACIÓN: $ [Monto] bruto mensual
+MODALIDAD   : [Presencial · Híbrida · Remota]
+
+Las condiciones están sujetas a la normativa laboral
+vigente (Ley 20.744) y al convenio colectivo aplicable.
+
+Cordialmente,
+Recursos Humanos — DKHR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠ Documento de demostración. Activá la API para
+  generar documentos personalizados con IA.`;
+  }
+  if (type === "chat") {
+    const r=["Según las políticas de la empresa, podés encontrar esa información en el manual de bienvenida. ¿Necesitás más detalle?","De acuerdo al reglamento, ese tipo de solicitudes deben realizarse con al menos 5 días hábiles de anticipación.","Entiendo tu consulta. Lo indicado es coordinar con tu líder directo y luego notificar a RRHH.","Según el manual, ese beneficio aplica a partir del tercer mes de antigüedad. ¿Hay algo más en lo que pueda ayudarte?"];
+    return r[Math.floor(Math.random()*r.length)];
+  }
+  if (type === "profile") {
+    const {scores} = payload;
+    const D=scores.D||50,E=scores.E||50;
+    let profileType="Analista Estratégico";
+    if(D>70&&E>65)profileType="Líder Influyente";
+    else if(D>70)profileType="Ejecutor Directo";
+    else if(E>70)profileType="Conector Social";
+    else if((scores.N||0)>75)profileType="Especialista Metódico";
+    return {
+      profileType,
+      summary:"Este perfil combina orientación a resultados con capacidad de influencia interpersonal. Toma decisiones con seguridad y mantiene el foco en los objetivos sin perder de vista el factor humano del equipo. Su adaptabilidad le permite operar eficazmente en entornos cambiantes.",
+      strengths:["Pensamiento estratégico","Resiliencia ante la adversidad","Capacidad de influencia"],
+      challenges:["Puede subestimar los detalles operativos","Tendencia a avanzar antes de consensuar"],
+      workStyle:"Rinde mejor en entornos desafiantes con autonomía y métricas claras. Necesita ver el impacto concreto de su trabajo para mantenerse motivado."
+    };
+  }
+}
+
+// ── Questions ──────────────────────────────────────────────────────
+const QUESTIONS=[
+  {id:1,axis:"D",es:"Me siento cómodo/a tomando decisiones rápidas, incluso con información incompleta.",en:"I feel comfortable making quick decisions, even with incomplete information.",pt:"Sinto-me confortável tomando decisões rápidas, mesmo com informações incompletas.",fr:"Je me sens à l'aise pour prendre des décisions rapides, même avec des informations incomplètes.",de:"Ich fühle mich wohl dabei, schnelle Entscheidungen zu treffen, auch mit unvollständigen Informationen."},
+  {id:2,axis:"D",es:"Cuando hay un obstáculo, mi primer impulso es enfrentarlo directamente.",en:"When there's an obstacle, my first impulse is to face it head-on.",pt:"Quando há um obstáculo, meu primeiro impulso é enfrentá-lo diretamente.",fr:"Quand il y a un obstacle, mon premier réflexe est de l'affronter directement.",de:"Wenn es ein Hindernis gibt, ist mein erster Impuls, es direkt anzugehen."},
+  {id:3,axis:"D",es:"Prefiero liderar un proyecto antes que seguir las instrucciones de otro.",en:"I prefer to lead a project rather than follow someone else's instructions.",pt:"Prefiro liderar um projeto a seguir as instruções de outra pessoa.",fr:"Je préfère diriger un projet plutôt que de suivre les instructions de quelqu'un d'autre.",de:"Ich leite lieber ein Projekt, als die Anweisungen anderer zu befolgen."},
+  {id:4,axis:"D",es:"Me incomoda esperar la aprobación de otros para actuar.",en:"I feel uncomfortable waiting for others' approval before acting.",pt:"Sinto-me desconfortável esperando a aprovação de outros para agir.",fr:"Je me sens mal à l'aise d'attendre l'approbation des autres pour agir.",de:"Es ist mir unangenehm, auf die Zustimmung anderer zu warten, bevor ich handele."},
+  {id:5,axis:"D",es:"Asumo riesgos calculados con naturalidad cuando creo en algo.",en:"I naturally take calculated risks when I believe in something.",pt:"Assumo riscos calculados naturalmente quando acredito em algo.",fr:"Je prends naturellement des risques calculés quand je crois en quelque chose.",de:"Ich gehe natürlich kalkulierte Risiken ein, wenn ich an etwas glaube."},
+  {id:6,axis:"E",es:"Disfruto conocer gente nueva y hacer contactos en entornos profesionales.",en:"I enjoy meeting new people and networking in professional settings.",pt:"Gosto de conhecer pessoas novas e fazer contatos em ambientes profissionais.",fr:"J'aime rencontrer de nouvelles personnes et créer des contacts dans des environnements professionnels.",de:"Ich genieße es, neue Menschen kennenzulernen und in beruflichen Umfeldern Kontakte zu knüpfen."},
+  {id:7,axis:"E",es:"Me resulta fácil hablar en público o ante grupos grandes.",en:"I find it easy to speak in public or in front of large groups.",pt:"Acho fácil falar em público ou diante de grandes grupos.",fr:"Je trouve facile de parler en public ou devant de grands groupes.",de:"Es fällt mir leicht, öffentlich oder vor großen Gruppen zu sprechen."},
+  {id:8,axis:"E",es:"Genero entusiasmo en los equipos con los que trabajo.",en:"I generate enthusiasm in the teams I work with.",pt:"Gero entusiasmo nas equipes com as quais trabalho.",fr:"Je génère de l'enthousiasme dans les équipes avec lesquelles je travaille.",de:"Ich erzeuge Begeisterung in den Teams, mit denen ich arbeite."},
+  {id:9,axis:"E",es:"Prefiero resolver problemas hablando con otros antes que pensar solo/a.",en:"I prefer to solve problems by talking with others rather than thinking alone.",pt:"Prefiro resolver problemas conversando com outros a pensar sozinho/a.",fr:"Je préfère résoudre les problèmes en discutant avec d'autres plutôt qu'en réfléchissant seul(e).",de:"Ich löse Probleme lieber im Gespräch mit anderen als alleine nachzudenken."},
+  {id:10,axis:"E",es:"Las reuniones sociales me dan energía en lugar de agotarme.",en:"Social gatherings energize me rather than drain me.",pt:"Reuniões sociais me energizam em vez de me esgotar.",fr:"Les réunions sociales m'énergisent plutôt qu'elles ne m'épuisent.",de:"Gesellschaftliche Treffen geben mir Energie, anstatt mich zu erschöpfen."},
+  {id:11,axis:"P",es:"Prefiero un entorno de trabajo estable y predecible antes que uno dinámico y cambiante.",en:"I prefer a stable and predictable work environment over a dynamic and changing one.",pt:"Prefiro um ambiente de trabalho estável e previsível a um dinâmico e mutável.",fr:"Je préfère un environnement de travail stable et prévisible à un environnement dynamique et changeant.",de:"Ich bevorzuge ein stabiles und vorhersehbares Arbeitsumfeld gegenüber einem dynamischen."},
+  {id:12,axis:"P",es:"Soy constante en mis tareas y rara vez dejo proyectos a medias.",en:"I am consistent in my tasks and rarely leave projects unfinished.",pt:"Sou constante nas minhas tarefas e raramente deixo projetos pela metade.",fr:"Je suis constant(e) dans mes tâches et je laisse rarement des projets à moitié terminés.",de:"Ich bin beständig in meinen Aufgaben und lasse selten Projekte halbfertig."},
+  {id:13,axis:"P",es:"Apoyo a mis compañeros con paciencia incluso cuando cometen errores.",en:"I support my colleagues patiently even when they make mistakes.",pt:"Apoio meus colegas com paciência mesmo quando cometem erros.",fr:"Je soutiens mes collègues avec patience même quand ils font des erreurs.",de:"Ich unterstütze meine Kollegen geduldig, auch wenn sie Fehler machen."},
+  {id:14,axis:"P",es:"Me tomo el tiempo necesario para pensar antes de responder o actuar.",en:"I take the necessary time to think before responding or acting.",pt:"Dedico o tempo necessário para pensar antes de responder ou agir.",fr:"Je prends le temps nécessaire pour réfléchir avant de répondre ou d'agir.",de:"Ich nehme mir die nötige Zeit zum Nachdenken, bevor ich antworte oder handle."},
+  {id:15,axis:"P",es:"El bienestar del equipo es tan importante para mí como alcanzar los resultados.",en:"Team wellbeing is as important to me as achieving results.",pt:"O bem-estar da equipe é tão importante para mim quanto alcançar resultados.",fr:"Le bien-être de l'équipe est aussi important pour moi que d'atteindre les résultats.",de:"Das Wohlbefinden des Teams ist mir genauso wichtig wie das Erreichen von Ergebnissen."},
+  {id:16,axis:"N",es:"Sigo los procedimientos establecidos incluso cuando creo que hay una forma más rápida.",en:"I follow established procedures even when I think there's a faster way.",pt:"Sigo os procedimentos estabelecidos mesmo quando acho que há uma forma mais rápida.",fr:"Je suis les procédures établies même quand je pense qu'il y a une façon plus rapide.",de:"Ich befolge festgelegte Verfahren, auch wenn ich denke, dass es einen schnelleren Weg gibt."},
+  {id:17,axis:"N",es:"Me incomoda entregar un trabajo si no cumple con los estándares de calidad esperados.",en:"I feel uncomfortable delivering work that doesn't meet expected quality standards.",pt:"Sinto-me desconfortável entregando um trabalho que não atende aos padrões de qualidade esperados.",fr:"Je me sens mal à l'aise de remettre un travail qui ne répond pas aux normes de qualité attendues.",de:"Es ist mir unangenehm, Arbeit abzuliefern, die nicht den erwarteten Qualitätsstandards entspricht."},
+  {id:18,axis:"N",es:"Presto mucha atención a los detalles, incluso en tareas menores.",en:"I pay close attention to details, even in minor tasks.",pt:"Presto muita atenção aos detalhes, mesmo em tarefas menores.",fr:"Je fais très attention aux détails, même dans les tâches mineures.",de:"Ich achte sehr auf Details, auch bei kleineren Aufgaben."},
+  {id:19,axis:"N",es:"Las reglas y normas me dan claridad y seguridad para trabajar mejor.",en:"Rules and norms give me clarity and security to work better.",pt:"Regras e normas me dão clareza e segurança para trabalhar melhor.",fr:"Les règles et les normes me donnent de la clarté et de la sécurité pour mieux travailler.",de:"Regeln und Normen geben mir Klarheit und Sicherheit, um besser zu arbeiten."},
+  {id:20,axis:"N",es:"Analizo en profundidad antes de tomar una decisión importante.",en:"I analyze in depth before making an important decision.",pt:"Analiso em profundidade antes de tomar uma decisão importante.",fr:"J'analyse en profondeur avant de prendre une décision importante.",de:"Ich analysiere gründlich, bevor ich eine wichtige Entscheidung treffe."},
+  {id:21,axis:"A",es:"Mantengo la calma en situaciones de alta presión o conflicto.",en:"I stay calm in high-pressure or conflict situations.",pt:"Mantenho a calma em situações de alta pressão ou conflito.",fr:"Je reste calme dans les situations de haute pression ou de conflit.",de:"Ich bleibe in Hochdrucksituationen oder Konflikten ruhig."},
+  {id:22,axis:"A",es:"Puedo adaptar mi estilo de comunicación según la persona con quien hablo.",en:"I can adapt my communication style depending on who I'm talking to.",pt:"Consigo adaptar meu estilo de comunicação dependendo de com quem estou falando.",fr:"Je peux adapter mon style de communication selon la personne avec qui je parle.",de:"Ich kann meinen Kommunikationsstil je nach Gesprächspartner anpassen."},
+  {id:23,axis:"A",es:"Cuando algo no sale como esperaba, me recupero rápidamente y sigo adelante.",en:"When something doesn't go as expected, I recover quickly and move forward.",pt:"Quando algo não sai como esperado, me recupero rapidamente e sigo em frente.",fr:"Quand quelque chose ne se passe pas comme prévu, je me remets rapidement et je continue.",de:"Wenn etwas nicht wie erwartet läuft, erhole ich mich schnell und mache weiter."},
+  {id:24,axis:"A",es:"Puedo trabajar eficientemente con personas de estilos muy distintos al mío.",en:"I can work efficiently with people of very different styles from my own.",pt:"Consigo trabalhar eficientemente com pessoas de estilos muito diferentes do meu.",fr:"Je peux travailler efficacement avec des personnes ayant des styles très différents du mien.",de:"Ich kann effizient mit Menschen arbeiten, die einen sehr anderen Stil als ich haben."},
+  {id:25,axis:"A",es:"Gestiono mis emociones de manera que no afecten negativamente mi trabajo.",en:"I manage my emotions so they don't negatively affect my work.",pt:"Gerencio minhas emoções de forma que não afetem negativamente meu trabalho.",fr:"Je gère mes émotions de manière à ce qu'elles n'affectent pas négativement mon travail.",de:"Ich steuere meine Emotionen so, dass sie meine Arbeit nicht negativ beeinflussen."},
+];
+
+const SCALE={es:["Nada","Poco","Moderadamente","Bastante","Totalmente"],en:["Not at all","A little","Moderately","Quite a lot","Completely"],pt:["Nada","Pouco","Moderadamente","Bastante","Totalmente"],fr:["Pas du tout","Un peu","Modérément","Beaucoup","Complètement"],de:["Gar nicht","Wenig","Mäßig","Ziemlich","Völlig"]};
+
+const T={
+  es:{tabs:["CVs","Documentos","Onboarding","DK Profile"],jdl:"Descripción del puesto",jdph:"Pegá aquí la descripción del puesto...",cvsl:"CVs de candidatos",cvph:n=>`CV #${n}`,addcv:"+ Agregar CV",anzbtn:"Analizar candidatos",anzl:"Analizando...",score:"Puntaje",str:"Fortalezas",gap:"Brechas",profile:"DK Profile",pdaNote:"Inferencia conductual basada en CV",disclaimer:"DK Profile genera una aproximación conductual mediante IA. No reemplaza evaluaciones psicométricas formales.",dtl:"Tipo de documento",dts:["Oferta laboral","Contrato de trabajo","Carta de desvinculación","Evaluación de desempeño","Política de RRHH"],detl:"Detalles del documento",detph:"Nombre, puesto, salario, fecha de inicio...",genbtn:"Generar documento",genl:"Generando...",copy:"Copiar",copied:"Copiado",ctxl:"Políticas y manual de la empresa",ctxph:"Pegá el reglamento, políticas de RRHH, beneficios...",actbtn:"Activar asistente",bon:"Activo",boff:"Inactivo",chinph:"Consultá sobre las políticas de la empresa...",sndbtn:"Enviar",welcome:"Hola. Soy el asistente de onboarding de DKHR. ¿En qué puedo ayudarte?",chatph:"Activá el asistente para comenzar.",testTitle:"Evaluación DK Profile",testDesc:"Respondé con honestidad. La evaluación toma 5-7 minutos.",testInstructions:"¿Cuánto te identificás con esta afirmación?",testName:"Nombre completo",testNamePh:"Ingresá tu nombre...",testStart:"Comenzar",testPrev:"Anterior",testNext:"Siguiente",testFinish:"Generar mi perfil",testAnalyzing:"Analizando...",testResults:"Tu DK Profile",testRestart:"Volver a realizar",question:"Pregunta",of:"de",axes:{D:"Dominancia",E:"Extroversión",P:"Paciencia",N:"Normatividad",A:"Autocontrol"}},
+  en:{tabs:["CVs","Documents","Onboarding","DK Profile"],jdl:"Job description",jdph:"Paste job description here...",cvsl:"Candidate CVs",cvph:n=>`CV #${n}`,addcv:"+ Add CV",anzbtn:"Analyze candidates",anzl:"Analyzing...",score:"Score",str:"Strengths",gap:"Gaps",profile:"DK Profile",pdaNote:"Behavioral inference from CV",disclaimer:"DK Profile generates a behavioral approximation via AI. Does not replace formal psychometric assessments.",dtl:"Document type",dts:["Job offer","Employment contract","Termination letter","Performance review","HR policy"],detl:"Document details",detph:"Name, position, salary, start date...",genbtn:"Generate document",genl:"Generating...",copy:"Copy",copied:"Copied",ctxl:"Company policies & handbook",ctxph:"Paste your HR policies, handbook, rules...",actbtn:"Activate assistant",bon:"Active",boff:"Inactive",chinph:"Ask about company policies...",sndbtn:"Send",welcome:"Hello. I'm your DKHR onboarding assistant. How can I help you?",chatph:"Activate the assistant to start.",testTitle:"DK Profile Assessment",testDesc:"Answer honestly. This takes 5-7 minutes.",testInstructions:"How much do you identify with this statement?",testName:"Full name",testNamePh:"Enter your name...",testStart:"Begin",testPrev:"Previous",testNext:"Next",testFinish:"Generate my profile",testAnalyzing:"Analyzing...",testResults:"Your DK Profile",testRestart:"Retake",question:"Question",of:"of",axes:{D:"Dominance",E:"Extroversion",P:"Patience",N:"Normativity",A:"Self-control"}},
+  pt:{tabs:["CVs","Documentos","Onboarding","DK Profile"],jdl:"Descrição da vaga",jdph:"Cole a descrição da vaga aqui...",cvsl:"CVs dos candidatos",cvph:n=>`CV #${n}`,addcv:"+ Adicionar CV",anzbtn:"Analisar candidatos",anzl:"Analisando...",score:"Pontuação",str:"Pontos fortes",gap:"Lacunas",profile:"DK Profile",pdaNote:"Inferência comportamental do CV",disclaimer:"O DK Profile gera uma aproximação comportamental via IA. Não substitui avaliações psicométricas formais.",dtl:"Tipo de documento",dts:["Carta de oferta","Contrato de trabalho","Carta de demissão","Avaliação de desempenho","Política de RH"],detl:"Detalhes do documento",detph:"Nome, cargo, salário, data de início...",genbtn:"Gerar documento",genl:"Gerando...",copy:"Copiar",copied:"Copiado",ctxl:"Políticas e manual da empresa",ctxph:"Cole o manual, políticas de RH, benefícios...",actbtn:"Ativar assistente",bon:"Ativo",boff:"Inativo",chinph:"Pergunte sobre as políticas...",sndbtn:"Enviar",welcome:"Olá. Sou o assistente de onboarding DKHR. Como posso ajudá-lo?",chatph:"Ative o assistente para começar.",testTitle:"Avaliação DK Profile",testDesc:"Responda honestamente. Leva 5-7 minutos.",testInstructions:"Quanto você se identifica com esta afirmação?",testName:"Nome completo",testNamePh:"Digite seu nome...",testStart:"Iniciar",testPrev:"Anterior",testNext:"Próximo",testFinish:"Gerar meu perfil",testAnalyzing:"Analisando...",testResults:"Seu DK Profile",testRestart:"Refazer",question:"Pergunta",of:"de",axes:{D:"Dominância",E:"Extroversão",P:"Paciência",N:"Normatividade",A:"Autocontrole"}},
+};
+
+// ── Spinner ────────────────────────────────────────────────────────
+const Spinner=()=>(
+  <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",padding:"12px 0"}}>
+    {[0,1,2].map(i=><div key={i} style={{width:5,height:5,borderRadius:"50%",background:G,animation:`spin 1s ease ${i*.18}s infinite alternate`}}/>)}
+  </div>
+);
+
+// ── Radar chart ────────────────────────────────────────────────────
+function PDARadar({pda,axes}){
+  const data=Object.keys(axes).map(k=>({axis:axes[k],value:pda[k]||0}));
+  return(
+    <ResponsiveContainer width="100%" height={200}>
+      <RadarChart data={data} margin={{top:10,right:26,bottom:10,left:26}}>
+        <PolarGrid stroke={BD} strokeDasharray="3 3"/>
+        <PolarAngleAxis dataKey="axis" tick={{fill:MT,fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}}/>
+        <Radar dataKey="value" stroke={G} fill={G} fillOpacity={0.12} strokeWidth={1.5} dot={{fill:G,r:2.5}}/>
+        <Tooltip contentStyle={{background:CD,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,color:TX,fontFamily:"'IBM Plex Mono',monospace"}} formatter={v=>[`${v} / 100`]}/>
+      </RadarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function PDABars({pda,axes}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {Object.keys(AX).map(k=>(
+        <div key={k}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+            <span style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>{axes[k]}</span>
+            <span style={{fontSize:13,fontWeight:600,color:AX[k],fontFamily:"'IBM Plex Mono',monospace"}}>{pda[k]||0}</span>
+          </div>
+          <div style={{height:3,background:BD,borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${pda[k]||0}%`,background:`linear-gradient(90deg,${AX[k]},${AXL[k]})`,borderRadius:2,transition:"width .8s ease"}}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── DK Profile Test ────────────────────────────────────────────────
+function DKProfileTest({lang,t}){
+  const [step,setStep]=useState("intro");
+  const [name,setName]=useState("");
+  const [current,setCurrent]=useState(0);
+  const [answers,setAnswers]=useState({});
+  const [result,setResult]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const q=QUESTIONS[current];
+  const scale=SCALE[lang]||SCALE.en;
+  const total=QUESTIONS.length;
+
+  const computeScores=()=>{
+    const axes={D:[],E:[],P:[],N:[],A:[]};
+    QUESTIONS.forEach(q=>{if(answers[q.id])axes[q.axis].push(answers[q.id]);});
+    const s={};
+    Object.keys(axes).forEach(k=>{const v=axes[k];s[k]=v.length?Math.round((v.reduce((a,b)=>a+b,0)/(v.length*5))*100):0;});
+    return s;
+  };
+
+  const analyze=()=>{
+    const scores=computeScores();
+    setLoading(true);
+    setTimeout(()=>{
+      const interp=mockClaude("profile",{scores});
+      setResult({scores,interp});
+      setStep("result");
+      setLoading(false);
+    },1800);
+  };
+
+  const handleAnswer=(val)=>{
+    setAnswers({...answers,[q.id]:val});
+    if(current<total-1)setTimeout(()=>setCurrent(c=>c+1),280);
+  };
+
+  const card={background:CD,border:`1px solid ${BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14};
+  const lbl={fontSize:10,fontWeight:600,color:MT,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",display:"block",marginBottom:8};
+  const inp={width:"100%",background:SF,border:`1px solid ${BD}`,borderRadius:6,padding:"12px 14px",color:TX,fontSize:14,fontFamily:"'IBM Plex Sans',sans-serif",outline:"none",boxSizing:"border-box"};
+  const btn={padding:"12px 28px",borderRadius:6,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:`linear-gradient(135deg,${G},${GL})`,color:"#06070d",fontFamily:"'IBM Plex Sans',sans-serif"};
+  const btnG={padding:"10px 18px",borderRadius:6,border:`1px solid ${BD}`,background:"transparent",color:MT,cursor:"pointer",fontSize:12,fontFamily:"'IBM Plex Sans',sans-serif"};
+
+  if(step==="intro")return(
+    <div style={{maxWidth:560,margin:"0 auto"}}>
+      <div style={card}>
+        <div style={{fontSize:22,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:TX,marginBottom:6}}>{t.testTitle}</div>
+        <div style={{fontSize:13,color:MT,lineHeight:1.8,marginBottom:24}}>{t.testDesc}</div>
+        <label style={lbl}>{t.testName}</label>
+        <input style={inp} placeholder={t.testNamePh} value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&setStep("test")}/>
+        <div style={{marginTop:18}}><button style={{...btn,opacity:name.trim()?1:.45}} onClick={()=>name.trim()&&setStep("test")}>{t.testStart}</button></div>
+      </div>
+      <div style={{padding:"12px 16px",borderRadius:6,background:SF,border:`1px solid ${BD}`,fontSize:11,color:MT,lineHeight:1.7,fontStyle:"italic"}}>⚠ {t.disclaimer}</div>
+    </div>
+  );
+
+  if(step==="test")return(
+    <div style={{maxWidth:600,margin:"0 auto"}}>
+      <div style={{marginBottom:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+          <span style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>{t.question} {current+1} {t.of} {total}</span>
+          <span style={{fontSize:11,color:G,fontFamily:"'IBM Plex Mono',monospace",fontWeight:600}}>{Math.round((current/total)*100)}%</span>
+        </div>
+        <div style={{height:2,background:BD,borderRadius:1}}>
+          <div style={{height:"100%",width:`${((current+1)/total)*100}%`,background:`linear-gradient(90deg,${G},${GL})`,borderRadius:1,transition:"width .35s ease"}}/>
+        </div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <span style={{fontSize:10,fontWeight:600,color:AX[q.axis],fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase",padding:"3px 10px",borderRadius:20,background:`${AX[q.axis]}18`,border:`1px solid ${AX[q.axis]}40`}}>{t.axes[q.axis]}</span>
+      </div>
+      <div style={{...card,minHeight:110,display:"flex",alignItems:"center",borderColor:answers[q.id]?`${G}40`:BD}}>
+        <div style={{fontSize:17,lineHeight:1.75,color:TX}}>{q[lang]||q.en}</div>
+      </div>
+      <div style={{marginBottom:24}}>
+        <div style={{fontSize:10,color:"#2e3048",fontFamily:"'IBM Plex Mono',monospace",textAlign:"center",marginBottom:14,letterSpacing:"0.08em",textTransform:"uppercase"}}>{t.testInstructions}</div>
+        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+          {[1,2,3,4,5].map(val=>{
+            const active=answers[q.id]===val;
+            return(
+              <button key={val} onClick={()=>handleAnswer(val)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"14px 8px",borderRadius:8,border:`1px solid ${active?G:BD}`,background:active?`${G}18`:SF,cursor:"pointer",minWidth:60,transition:"all .15s",flex:1}}>
+                <span style={{fontSize:22,fontWeight:700,color:active?G:MT,fontFamily:"'IBM Plex Mono',monospace",lineHeight:1}}>{val}</span>
+                <span style={{fontSize:9,color:active?G:"#2e3048",textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.3}}>{scale[val-1]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <button style={btnG} onClick={()=>setCurrent(c=>Math.max(0,c-1))} disabled={current===0}>{t.testPrev}</button>
+        {current<total-1
+          ?<button style={{...btn,opacity:answers[q.id]?1:.4}} onClick={()=>answers[q.id]&&setCurrent(c=>c+1)}>{t.testNext}</button>
+          :<button style={{...btn,opacity:Object.keys(answers).length===total?1:.4}} onClick={()=>Object.keys(answers).length===total&&analyze()}>{t.testFinish}</button>
+        }
+      </div>
+    </div>
+  );
+
+  if(loading)return(<div style={{textAlign:"center",padding:"80px 0"}}><Spinner/><div style={{fontSize:13,color:MT,fontFamily:"'IBM Plex Mono',monospace",marginTop:12}}>{t.testAnalyzing}</div></div>);
+
+  if(step==="result"&&result){
+    const {scores,interp}=result;
+    return(
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+          <div>
+            <div style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:4}}>{t.testResults}</div>
+            <div style={{fontSize:26,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:TX}}>{name}</div>
+            {interp.profileType&&<div style={{fontSize:13,color:G,fontFamily:"'IBM Plex Mono',monospace",marginTop:4}}>{interp.profileType}</div>}
+          </div>
+          <button style={{padding:"8px 16px",borderRadius:6,border:`1px solid ${BD}`,background:"transparent",color:MT,cursor:"pointer",fontSize:11,fontFamily:"'IBM Plex Mono',monospace"}} onClick={()=>{setStep("intro");setAnswers({});setCurrent(0);setResult(null);setName("");}}>{t.testRestart}</button>
+        </div>
+        <div style={{background:CD,border:`1px solid ${BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"center"}}>
+            <PDARadar pda={scores} axes={t.axes}/>
+            <PDABars pda={scores} axes={t.axes}/>
+          </div>
+        </div>
+        {interp.summary&&<div style={{background:CD,border:`1px solid ${BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14}}><div style={{fontSize:14,color:TX,lineHeight:1.85,marginBottom:14}}>{interp.summary}</div>{interp.workStyle&&<div style={{fontSize:13,color:MT,lineHeight:1.75,paddingTop:14,borderTop:`1px solid ${BD}`}}>{interp.workStyle}</div>}</div>}
+        {(interp.strengths?.length>0||interp.challenges?.length>0)&&(
+          <div style={{background:CD,border:`1px solid ${BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14}}>
+            {interp.strengths?.length>0&&<div style={{marginBottom:12}}><span style={{fontSize:9,fontWeight:600,color:"#6aad8e",marginRight:10,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}}>{t.str}</span>{interp.strengths.map((x,i)=><span key={i} style={{display:"inline-block",padding:"3px 9px",borderRadius:20,fontSize:11,margin:"2px",background:`${SU}18`,color:"#6aad8e",border:`1px solid ${SU}40`}}>{x}</span>)}</div>}
+            {interp.challenges?.length>0&&<div><span style={{fontSize:9,fontWeight:600,color:"#ad6a6a",marginRight:10,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}}>{t.gap}</span>{interp.challenges.map((x,i)=><span key={i} style={{display:"inline-block",padding:"3px 9px",borderRadius:20,fontSize:11,margin:"2px",background:`${DA}18`,color:"#ad6a6a",border:`1px solid ${DA}40`}}>{x}</span>)}</div>}
+          </div>
+        )}
+        <div style={{padding:"12px 16px",borderRadius:6,background:SF,border:`1px solid ${BD}`,fontSize:11,color:MT,lineHeight:1.7,fontStyle:"italic"}}>⚠ {t.disclaimer}</div>
+      </div>
+    );
+  }
+  return null;
+}
+
+// ── Main App ───────────────────────────────────────────────────────
+function App(){
+  const [lang,setLang]=useState("es");
+  const [tab,setTab]=useState(0);
+  const [page,setPage]=useState("landing");
+  const t=T[lang]||T.es;
+
+  const [jobDesc,setJobDesc]=useState("");
+  const [cvs,setCvs]=useState(["",""]);
+  const [cvResults,setCvResults]=useState(null);
+  const [cvLoading,setCvLoading]=useState(false);
+
+  const [docType,setDocType]=useState(0);
+  const [docDetails,setDocDetails]=useState("");
+  const [docResult,setDocResult]=useState(null);
+  const [docLoading,setDocLoading]=useState(false);
+  const [copied,setCopied]=useState(false);
+
+  const [context,setContext]=useState("");
+  const [botActive,setBotActive]=useState(false);
+  const [messages,setMessages]=useState([]);
+  const [chatInput,setChatInput]=useState("");
+  const [botLoading,setBotLoading]=useState(false);
+  const chatEnd=useRef(null);
+  useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+
+  const analyzeCVs=()=>{
+    const filled=cvs.filter(c=>c.trim());
+    if(!jobDesc.trim()||!filled.length)return;
+    setCvLoading(true);setCvResults(null);
+    setTimeout(()=>{setCvResults(mockClaude("cv",{count:filled.length}));setCvLoading(false);},2000);
+  };
+
+  const generateDoc=()=>{
+    if(!docDetails.trim())return;
+    setDocLoading(true);setDocResult(null);
+    setTimeout(()=>{setDocResult(mockClaude("doc",{}));setDocLoading(false);},1500);
+  };
+
+  const activateBot=()=>{
+    if(!context.trim())return;
+    setBotActive(true);
+    setMessages([{role:"assistant",content:t.welcome}]);
+  };
+
+  const sendChat=()=>{
+    if(!chatInput.trim()||!botActive)return;
+    const userMsg={role:"user",content:chatInput};
+    const next=[...messages,userMsg];
+    setMessages(next);setChatInput("");setBotLoading(true);
+    setTimeout(()=>{setMessages([...next,{role:"assistant",content:mockClaude("chat",{})}]);setBotLoading(false);},1200);
+  };
+
+  // Styles
+  const S={
+    btn:{padding:"11px 24px",borderRadius:6,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:`linear-gradient(135deg,${G},${GL})`,color:"#06070d",fontFamily:"'IBM Plex Sans',sans-serif",letterSpacing:"0.04em"},
+    btnG:{padding:"8px 14px",borderRadius:6,border:`1px solid ${BD}`,background:"transparent",color:MT,cursor:"pointer",fontSize:11,fontFamily:"'IBM Plex Mono',monospace"},
+    card:{background:CD,border:`1px solid ${BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14},
+    lbl:{fontSize:10,fontWeight:600,color:MT,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",display:"block",marginBottom:8},
+    inp:{width:"100%",background:SF,border:`1px solid ${BD}`,borderRadius:6,padding:"12px 14px",color:TX,fontSize:13,fontFamily:"'IBM Plex Sans',sans-serif",resize:"vertical",outline:"none",boxSizing:"border-box"},
+    sel:{width:"100%",background:SF,border:`1px solid ${BD}`,borderRadius:6,padding:"12px 14px",color:TX,fontSize:13,fontFamily:"'IBM Plex Sans',sans-serif",outline:"none"},
+    tab:(a)=>({flex:1,minWidth:80,padding:"10px 4px",textAlign:"center",border:"none",borderRadius:6,background:a?`linear-gradient(135deg,${G}25,${G}10)`:"transparent",boxShadow:a?`inset 0 0 0 1px ${G}55`:"none",color:a?G:MT,cursor:"pointer",fontSize:11,fontWeight:a?600:400,fontFamily:"'IBM Plex Sans',sans-serif",transition:"all .2s",whiteSpace:"nowrap"}),
+    langBtn:(a)=>({padding:"4px 10px",border:`1px solid ${a?G:BD}`,borderRadius:4,background:a?GD:"transparent",color:a?G:MT,cursor:"pointer",fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}),
+    tag:(tp)=>({display:"inline-block",padding:"3px 9px",borderRadius:3,fontSize:11,margin:"2px",background:tp==="g"?`${SU}18`:`${DA}18`,color:tp==="g"?"#6aad8e":"#ad6a6a",border:`1px solid ${tp==="g"?`${SU}40`:`${DA}40`}`}),
+  };
+
+  // ── Landing page ──────────────────────────────────────────────
+  if(page==="landing")return(
+    <div style={{minHeight:"100vh",background:BG,position:"relative",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0}}>
+        <div style={{position:"absolute",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,#00e5c808 0%,transparent 70%)",top:"-10%",left:"-10%",animation:"orb1 18s ease-in-out infinite"}}/>
+        <div style={{position:"absolute",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,#5b8ab008 0%,transparent 70%)",bottom:"0%",right:"-5%",animation:"orb2 22s ease-in-out infinite"}}/>
+        <div style={{position:"absolute",inset:0,backgroundImage:`linear-gradient(#181a2755 1px,transparent 1px),linear-gradient(90deg,#181a2755 1px,transparent 1px)`,backgroundSize:"60px 60px",opacity:0.4}}/>
+      </div>
+      <header style={{position:"fixed",top:0,left:0,right:0,zIndex:100,padding:"0 40px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#07080fcc",backdropFilter:"blur(16px)",borderBottom:`1px solid ${BD}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:20,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",letterSpacing:"0.2em",color:G}}>DKHR</div>
+          <div style={{width:1,height:20,background:BD}}/>
+          <div style={{fontSize:10,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.12em",textTransform:"uppercase"}}>HR Intelligence</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{display:"flex",gap:4}}>
+            {["es","en","pt"].map(l=><button key={l} style={S.langBtn(lang===l)} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>)}
+          </div>
+          <button onClick={()=>setPage("app")} style={{padding:"8px 20px",borderRadius:6,border:`1px solid ${G}60`,background:`${G}10`,color:G,fontSize:12,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.08em",cursor:"pointer"}}>ABRIR APP →</button>
+        </div>
+      </header>
+
+      <section style={{position:"relative",zIndex:1,minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"120px 24px 80px"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,padding:"5px 16px",borderRadius:20,border:`1px solid ${G}30`,background:`${G}08`,marginBottom:48,animation:"fadeUp .6s ease both"}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:G,display:"inline-block"}}/>
+          <span style={{fontSize:10,color:G,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.14em",textTransform:"uppercase"}}>AI-Powered HR Platform · Demo Mode</span>
+        </div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",lineHeight:.9,marginBottom:32,animation:"fadeUp .6s ease .1s both"}}>
+          <div style={{fontSize:"clamp(100px,18vw,200px)",fontWeight:700,color:G,letterSpacing:"-0.02em",textShadow:`0 0 120px ${G}30`}}>DK</div>
+          <div style={{fontSize:"clamp(100px,18vw,200px)",fontWeight:300,color:TX,letterSpacing:"-0.02em",marginTop:-20}}>HR</div>
+        </div>
+        <div style={{fontSize:13,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:24,animation:"fadeUp .6s ease .2s both"}}>Human Resources Intelligence</div>
+        <p style={{maxWidth:520,fontSize:16,color:`${TX}99`,lineHeight:1.8,marginBottom:48,animation:"fadeUp .6s ease .3s both"}}>Automatizá tu área de RRHH con inteligencia artificial. Analizá candidatos, generá documentos, habilitá onboarding 24/7 y evaluá perfiles conductuales.</p>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,animation:"fadeUp .6s ease .4s both"}}>
+          <button onClick={()=>setPage("app")} style={{padding:"16px 48px",borderRadius:8,background:`linear-gradient(135deg,${G},#00c4ab)`,color:"#06070d",fontSize:14,fontWeight:700,fontFamily:"'IBM Plex Sans',sans-serif",letterSpacing:"0.06em",boxShadow:`0 0 40px ${G}30`,cursor:"pointer",border:"none"}}>COMENZAR AHORA</button>
+          <div style={{display:"flex",gap:20}}>{["Gratis","Sin registro","5 idiomas","Demo activo"].map(t=><span key={t} style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>✓ {t}</span>)}</div>
+        </div>
+        <div style={{display:"flex",gap:0,marginTop:80,border:`1px solid ${BD}`,borderRadius:10,overflow:"hidden",animation:"fadeUp .6s ease .5s both"}}>
+          {[["4","Módulos"],["5","Idiomas"],["∞","Análisis"],["AI","Powered"]].map(([v,l],i)=>(
+            <div key={i} style={{padding:"20px 36px",textAlign:"center",borderRight:i<3?`1px solid ${BD}`:"none",background:CD}}>
+              <div style={{fontSize:28,fontWeight:700,color:G,fontFamily:"'Cormorant Garamond',serif"}}>{v}</div>
+              <div style={{fontSize:9,color:MT,textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.1em",marginTop:4}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={{position:"relative",zIndex:1,maxWidth:1000,margin:"0 auto",padding:"80px 24px"}}>
+        <div style={{textAlign:"center",marginBottom:60}}>
+          <div style={{fontSize:10,color:G,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>Módulos</div>
+          <h2 style={{fontSize:"clamp(32px,5vw,48px)",fontFamily:"'Cormorant Garamond',serif",fontWeight:600,color:TX}}>Todo lo que necesita tu área de RRHH</h2>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2,background:BD,borderRadius:12,overflow:"hidden"}}>
+          {[
+            {n:"01",icon:"◈",title:"Análisis de CVs",en:"CV Analyzer",desc:"Evaluá candidatos con IA. Scoring automático, fortalezas, brechas y perfil conductual.",color:G},
+            {n:"02",icon:"◇",title:"Documentos HR",en:"Document Generator",desc:"Generá contratos, ofertas laborales y evaluaciones de desempeño en segundos.",color:"#5b8ab0"},
+            {n:"03",icon:"◉",title:"Onboarding Bot",en:"Onboarding Assistant",desc:"Asistente entrenado con el manual y políticas internas de tu empresa. 24/7.",color:"#7c6fbc"},
+            {n:"04",icon:"◐",title:"DK Profile",en:"Behavioral Assessment",desc:"Evaluación conductual de 25 preguntas basada en DISC. Perfil radar instantáneo.",color:"#a06848"},
+          ].map((m,i)=>(
+            <div key={i} style={{background:CD,padding:"36px 32px",position:"relative",overflow:"hidden",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background=SF} onMouseLeave={e=>e.currentTarget.style.background=CD}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${m.color},transparent)`}}/>
+              <div style={{fontSize:10,color:`${m.color}80`,fontFamily:"'IBM Plex Mono',monospace",marginBottom:20}}>{m.n}</div>
+              <div style={{fontSize:28,color:m.color,marginBottom:16}}>{m.icon}</div>
+              <h3 style={{fontSize:20,fontWeight:600,fontFamily:"'Cormorant Garamond',serif",color:TX,marginBottom:4}}>{m.title}</h3>
+              <div style={{fontSize:10,color:`${m.color}90`,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:16}}>{m.en}</div>
+              <p style={{fontSize:13,color:`${TX}80`,lineHeight:1.75}}>{m.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:"center",marginTop:60}}>
+          <button onClick={()=>setPage("app")} style={{padding:"14px 40px",borderRadius:8,border:`1px solid ${G}40`,background:`${G}08`,color:G,fontSize:13,fontWeight:600,fontFamily:"'IBM Plex Sans',sans-serif",cursor:"pointer"}}>Probar la plataforma →</button>
+        </div>
+      </section>
+
+      <footer style={{position:"relative",zIndex:1,borderTop:`1px solid ${BD}`,padding:"32px 40px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:16,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:G,letterSpacing:"0.2em"}}>DKHR</div>
+          <span style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>© {new Date().getFullYear()}</span>
+        </div>
+        <div style={{display:"flex",gap:24}}>{["ES","EN","PT","FR","DE"].map(l=><span key={l} style={{fontSize:10,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>{l}</span>)}</div>
+        <div style={{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>Powered by Claude · Demo Mode</div>
+      </footer>
+    </div>
+  );
+
+  // ── App page ──────────────────────────────────────────────────
+  return(
+    <div style={{minHeight:"100vh",background:BG,color:TX,fontFamily:"'IBM Plex Sans',sans-serif"}}>
+      <header style={{borderBottom:`1px solid ${BD}`,padding:"0 clamp(16px,4vw,36px)",display:"flex",alignItems:"center",justifyContent:"space-between",height:64,position:"sticky",top:0,zIndex:100,background:`${BG}ee`,backdropFilter:"blur(12px)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:16}}>
+          <button onClick={()=>setPage("landing")} style={{fontSize:10,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.08em",padding:"4px 10px",border:`1px solid ${BD}`,borderRadius:4,cursor:"pointer",background:"transparent"}}>← Inicio</button>
+          <div style={{width:1,height:20,background:BD}}/>
+          <div>
+            <div style={{fontSize:22,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:G,letterSpacing:"0.18em"}}>DKHR</div>
+            <div style={{fontSize:9,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.14em",textTransform:"uppercase"}}>HR Intelligence</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          {["es","en","pt"].map(l=><button key={l} style={S.langBtn(lang===l)} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>)}
+        </div>
+      </header>
+
+      <div style={{background:"#a0684815",borderBottom:`1px solid #a0684830`,padding:"7px 24px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <span style={{fontSize:10,color:"#c48a6a",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.08em"}}>⚡ MODO DEMO — Respuestas de muestra. Activá la API key para usar IA real.</span>
+      </div>
+
+      <main style={{maxWidth:900,margin:"0 auto",padding:"36px clamp(16px,4vw,24px)"}}>
+        <div style={{display:"flex",background:CD,borderRadius:8,padding:"3px",border:`1px solid ${BD}`,marginBottom:32,gap:"2px",overflowX:"auto"}}>
+          {(t.tabs||["CVs","Documentos","Onboarding","DK Profile"]).map((tb,i)=>(
+            <button key={i} style={S.tab(tab===i)} onClick={()=>setTab(i)}>{tb}</button>
+          ))}
+        </div>
+
+        {/* CVs */}
+        {tab===0&&(
+          <div>
+            <div style={S.card}>
+              <label style={S.lbl}>{t.jdl}</label>
+              <textarea rows={4} style={S.inp} placeholder={t.jdph} value={jobDesc} onChange={e=>setJobDesc(e.target.value)}/>
+            </div>
+            <div style={S.card}>
+              <label style={S.lbl}>{t.cvsl}</label>
+              {cvs.map((cv,i)=>(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",background:GD,border:`1px solid ${G}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:G,flexShrink:0,marginTop:12,fontFamily:"'IBM Plex Mono',monospace"}}>{i+1}</div>
+                  <textarea rows={3} style={{...S.inp,flex:1}} placeholder={t.cvph(i+1)} value={cv} onChange={e=>{const n=[...cvs];n[i]=e.target.value;setCvs(n)}}/>
+                  {cvs.length>1&&<button style={S.btnG} onClick={()=>setCvs(cvs.filter((_,j)=>j!==i))}>×</button>}
+                </div>
+              ))}
+              {cvs.length<5&&<button style={{...S.btnG,color:G,borderColor:`${G}40`}} onClick={()=>setCvs([...cvs,""])}>{t.addcv}</button>}
+            </div>
+            <button style={S.btn} onClick={analyzeCVs} disabled={cvLoading}>{cvLoading?t.anzl:t.anzbtn}</button>
+            {cvLoading&&<div style={{marginTop:16}}><Spinner/></div>}
+            {cvResults&&(
+              <div style={{marginTop:24}}>
+                {cvResults.map((c,i)=>(
+                  <div key={i} style={{background:CD,border:`1px solid ${c.rank===1?`${G}50`:BD}`,borderRadius:10,padding:"24px 28px",marginBottom:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+                      <div style={{width:30,height:30,borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,fontFamily:"'IBM Plex Mono',monospace",background:c.rank===1?`linear-gradient(135deg,${G},${GL})`:c.rank===2?"#1e2238":"#1a1810",color:c.rank===1?"#06070d":c.rank===2?"#8090b0":"#8a6840",flexShrink:0}}>#{c.rank}</div>
+                      <div style={{fontWeight:600,fontSize:15,flex:1}}>{c.candidate}</div>
+                      <div style={{display:"inline-flex",alignItems:"baseline",gap:4,padding:"4px 12px",borderRadius:4,background:GD,border:`1px solid ${G}40`}}>
+                        <span style={{fontSize:18,fontWeight:700,color:G,fontFamily:"'IBM Plex Mono',monospace"}}>{c.score}</span>
+                        <span style={{fontSize:10,color:MT,fontFamily:"'IBM Plex Mono',monospace"}}>/100</span>
+                      </div>
+                    </div>
+                    <div style={{fontSize:13,color:MT,lineHeight:1.8,marginBottom:12}}>{c.summary}</div>
+                    {c.strengths?.length>0&&<div style={{marginBottom:8}}><span style={{fontSize:9,fontWeight:600,color:"#6aad8e",marginRight:8,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}}>{t.str}</span>{c.strengths.map((x,j)=><span key={j} style={S.tag("g")}>{x}</span>)}</div>}
+                    {c.gaps?.length>0&&<div style={{marginBottom:14}}><span style={{fontSize:9,fontWeight:600,color:"#ad6a6a",marginRight:8,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}}>{t.gap}</span>{c.gaps.map((x,j)=><span key={j} style={S.tag("r")}>{x}</span>)}</div>}
+                    {c.pda&&(
+                      <div style={{borderTop:`1px solid ${BD}`,paddingTop:16}}>
+                        <div style={{fontSize:10,fontWeight:600,color:G,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",marginBottom:12}}>{t.profile}</div>
+                        {c.pdaProfile&&<div style={{fontSize:12,color:MT,marginBottom:14,lineHeight:1.7,fontStyle:"italic"}}>{c.pdaProfile}</div>}
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,alignItems:"center"}}>
+                          <PDARadar pda={c.pda} axes={t.axes}/>
+                          <PDABars pda={c.pda} axes={t.axes}/>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Documentos */}
+        {tab===1&&(
+          <div>
+            <div style={S.card}>
+              <label style={S.lbl}>{t.dtl}</label>
+              <select style={S.sel} value={docType} onChange={e=>{setDocType(Number(e.target.value));setDocResult(null);}}>
+                {(t.dts||[]).map((d,i)=><option key={i} value={i}>{d}</option>)}
+              </select>
+            </div>
+            <div style={S.card}>
+              <label style={S.lbl}>{t.detl}</label>
+              <textarea rows={5} style={S.inp} placeholder={t.detph} value={docDetails} onChange={e=>setDocDetails(e.target.value)}/>
+            </div>
+            <button style={S.btn} onClick={generateDoc} disabled={docLoading}>{docLoading?t.genl:t.genbtn}</button>
+            {docLoading&&<div style={{marginTop:16}}><Spinner/></div>}
+            {docResult&&(
+              <div style={{marginTop:20}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <span style={{fontSize:11,fontFamily:"'IBM Plex Mono',monospace",color:G}}>{(t.dts||[])[docType]?.toUpperCase()}</span>
+                  <button style={S.btnG} onClick={()=>{navigator.clipboard.writeText(docResult);setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?t.copied:t.copy}</button>
+                </div>
+                <div style={{background:SF,border:`1px solid ${BD}`,borderRadius:8,padding:20,whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.85,color:TX,maxHeight:400,overflow:"auto",fontFamily:"'IBM Plex Mono',monospace"}}>{docResult}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Onboarding */}
+        {tab===2&&(
+          <div>
+            <div style={S.card}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <label style={{...S.lbl,marginBottom:0}}>{t.ctxl}</label>
+                <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:20,background:botActive?`${SU}18`:`${DA}18`,color:botActive?"#6aad8e":"#ad6a6a",fontSize:10,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",border:`1px solid ${botActive?`${SU}40`:`${DA}40`}`}}>● {botActive?t.bon:t.boff}</div>
+              </div>
+              <textarea rows={4} style={S.inp} placeholder={t.ctxph} value={context} onChange={e=>{setContext(e.target.value);if(botActive)setBotActive(false);}}/>
+              <div style={{marginTop:12}}><button style={S.btn} onClick={activateBot}>{t.actbtn}</button></div>
+            </div>
+            <div style={{background:SF,border:`1px solid ${BD}`,borderRadius:10,height:300,overflowY:"auto",padding:16,marginBottom:10}}>
+              {!botActive&&messages.length===0&&<div style={{textAlign:"center",color:"#2e3048",fontSize:12,marginTop:110,fontFamily:"'IBM Plex Mono',monospace"}}>{t.chatph}</div>}
+              {messages.map((m,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
+                  <div style={{maxWidth:"75%",padding:"10px 14px",borderRadius:m.role==="user"?"10px 10px 3px 10px":"10px 10px 10px 3px",background:m.role==="user"?G:CD,color:m.role==="user"?"#06070d":TX,fontSize:13,lineHeight:1.65,border:`1px solid ${m.role==="user"?"transparent":BD}`}}>{m.content}</div>
+                </div>
+              ))}
+              {botLoading&&<div style={{display:"flex",justifyContent:"flex-start",marginBottom:10}}><div style={{padding:"12px 16px",borderRadius:"10px 10px 10px 3px",background:CD,border:`1px solid ${BD}`}}><Spinner/></div></div>}
+              <div ref={chatEnd}/>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <input type="text" style={{...S.inp,flex:1,resize:"none"}} placeholder={t.chinph} value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} disabled={!botActive}/>
+              <button style={{...S.btn,flexShrink:0,opacity:botActive?1:.4}} onClick={sendChat} disabled={!botActive||botLoading}>{t.sndbtn}</button>
+            </div>
+          </div>
+        )}
+
+        {/* DK Profile */}
+        {tab===3&&<DKProfileTest lang={lang} t={t}/>}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Done: $(wc -c < /home/claude/dkhr-index/index.html) bytes"
