@@ -178,8 +178,10 @@ function DKTest({lang}) {
   const [result,setResult]=React.useState(null);
   const [loading,setLoading]=React.useState(false);
   const q=QS[cur];
-  const scale=lang==="en"?SCALE_EN:SCALE_ES;
-  const axes=lang==="en"?AXES_EN:AXES_ES;
+  const scaleAll={es:["Nada","Poco","Moderadamente","Bastante","Totalmente"],en:["Not at all","A little","Moderately","Quite a lot","Completely"],pt:["Nada","Pouco","Moderadamente","Bastante","Totalmente"],fr:["Pas du tout","Un peu","Modérément","Beaucoup","Complètement"],de:["Gar nicht","Wenig","Mäßig","Ziemlich","Völlig"],zh:["完全不","很少","有时","经常","完全是"]};
+  const scale=scaleAll[lang]||scaleAll.es;
+  const axesAll={es:{D:"Dominancia",E:"Extroversión",P:"Paciencia",N:"Normatividad",A:"Autocontrol"},en:{D:"Dominance",E:"Extroversion",P:"Patience",N:"Normativity",A:"Self-control"},pt:{D:"Dominância",E:"Extroversão",P:"Paciência",N:"Normatividade",A:"Autocontrole"},fr:{D:"Dominance",E:"Extraversion",P:"Patience",N:"Normativité",A:"Maîtrise de soi"},de:{D:"Dominanz",E:"Extraversion",P:"Geduld",N:"Normativität",A:"Selbstkontrolle"},zh:{D:"支配力",E:"外向性",P:"耐心",N:"规范性",A:"自控力"}};
+  const axes=axesAll[lang]||axesAll.es;
   const disc=lang==="en"?"DK Profile generates a behavioral approximation via AI analysis. It does not replace formal psychometric assessments.":"DK Profile genera una aproximación conductual mediante IA. No reemplaza evaluaciones psicométricas formales.";
 
   const computeScores=()=>{
@@ -326,9 +328,15 @@ function App() {
 
   const es=lang==="es";
   const en=lang==="en";
-  const tabs=es?["CVs","Documentos","Onboarding","DK Profile"]:["CVs","Documents","Onboarding","DK Profile"];
-  const axes=es?{D:"Dominancia",E:"Extroversión",P:"Paciencia",N:"Normatividad",A:"Autocontrol"}:{D:"Dominance",E:"Extroversion",P:"Patience",N:"Normativity",A:"Self-control"};
-  const docTypes=es?["Oferta laboral","Contrato de trabajo","Carta de desvinculación","Evaluación de desempeño","Política de RRHH"]:["Job offer","Employment contract","Termination letter","Performance review","HR policy"];
+  const fr=lang==="fr";
+  const de=lang==="de";
+  const zh=lang==="zh";
+  const tabLabels={es:["CVs","Documentos","Onboarding","DK Profile"],en:["CVs","Documents","Onboarding","DK Profile"],pt:["CVs","Documentos","Onboarding","DK Profile"],fr:["CVs","Documents","Onboarding","DK Profile"],de:["CVs","Dokumente","Onboarding","DK Profile"],zh:["简历","文件","入职","DK档案"]};
+  const tabs=tabLabels[lang]||tabLabels.es;
+  const axesMap={es:{D:"Dominancia",E:"Extroversión",P:"Paciencia",N:"Normatividad",A:"Autocontrol"},en:{D:"Dominance",E:"Extroversion",P:"Patience",N:"Normativity",A:"Self-control"},pt:{D:"Dominância",E:"Extroversão",P:"Paciência",N:"Normatividade",A:"Autocontrole"},fr:{D:"Dominance",E:"Extraversion",P:"Patience",N:"Normativité",A:"Maîtrise de soi"},de:{D:"Dominanz",E:"Extraversion",P:"Geduld",N:"Normativität",A:"Selbstkontrolle"},zh:{D:"支配力",E:"外向性",P:"耐心",N:"规范性",A:"自控力"}};
+  const axes=axesMap[lang]||axesMap.es;
+  const docTypesMap={es:["Oferta laboral","Contrato de trabajo","Carta de desvinculación","Evaluación de desempeño","Política de RRHH"],en:["Job offer","Employment contract","Termination letter","Performance review","HR policy"],pt:["Carta de oferta","Contrato de trabalho","Carta de demissão","Avaliação de desempenho","Política de RH"],fr:["Offre d'emploi","Contrat de travail","Lettre de licenciement","Évaluation de performance","Politique RH"],de:["Stellenangebot","Arbeitsvertrag","Kündigungsschreiben","Leistungsbeurteilung","HR-Richtlinie"],zh:["录用通知","劳动合同","离职信","绩效评估","人事政策"]};
+  const docTypes=docTypesMap[lang]||docTypesMap.es;
 
   const doAnalyze=()=>{
     const filled=cvs.filter(c=>c.trim());
@@ -346,7 +354,8 @@ function App() {
   const activateBot=()=>{
     if(!ctx.trim())return;
     setBotOn(true);
-    const welcome=es?"Hola. Soy el asistente de onboarding DKHR. ¿En qué puedo ayudarte?":"Hello. I'm the DKHR onboarding assistant. How can I help you?";
+    const welcomeMap={es:"Hola. Soy el asistente de onboarding DKHR. ¿En qué puedo ayudarte?",en:"Hello. I'm the DKHR onboarding assistant. How can I help you?",pt:"Olá. Sou o assistente de onboarding DKHR. Como posso ajudá-lo?",fr:"Bonjour. Je suis l'assistant d'onboarding DKHR. Comment puis-je vous aider?",de:"Hallo. Ich bin der DKHR Onboarding-Assistent. Wie kann ich Ihnen helfen?",zh:"你好。我是DKHR入职助手。请问有什么可以帮助您？"};
+    const welcome=welcomeMap[lang]||welcomeMap.es;
     setMsgs([{r:"a",c:welcome}]);
   };
 
@@ -371,11 +380,11 @@ function App() {
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <div style={{display:"flex",gap:4}}>
-            {["es","en","pt"].map(l=>(
-              <button key={l} onClick={()=>setLang(l)} style={{padding:"4px 9px",border:"1px solid "+(lang===l?G:BD),borderRadius:4,background:lang===l?G+"12":"transparent",color:lang===l?G:MT,cursor:"pointer",fontSize:10,fontFamily:"IBM Plex Mono,monospace"}}>{l.toUpperCase()}</button>
+            {["es","en","pt","fr","de","zh"].map(l=>(
+              <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",border:"1px solid "+(lang===l?G:"#3a4060"),borderRadius:5,background:lang===l?G+"22":"#181a27",color:lang===l?G:"#9aaac8",cursor:"pointer",fontSize:10,fontWeight:lang===l?700:400,fontFamily:"IBM Plex Mono,monospace",letterSpacing:"0.06em"}}>{l.toUpperCase()}</button>
             ))}
           </div>
-          <button onClick={()=>setPage("app")} style={{padding:"8px 18px",borderRadius:6,border:"1px solid "+G+"50",background:G+"10",color:G,fontSize:11,fontFamily:"IBM Plex Mono,monospace",cursor:"pointer",letterSpacing:"0.06em"}}>ABRIR APP →</button>
+          <button onClick={()=>setPage("app")} style={{padding:"8px 18px",borderRadius:6,border:"1px solid "+G+"70",background:G+"18",color:G,fontSize:11,fontFamily:"IBM Plex Mono,monospace",cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>ABRIR APP →</button>
         </div>
       </header>
 
@@ -460,8 +469,8 @@ function App() {
           <span style={{fontSize:18,fontWeight:700,fontFamily:"Cormorant Garamond,serif",color:G,letterSpacing:"0.16em"}}>DKHR</span>
         </div>
         <div style={{display:"flex",gap:4}}>
-          {["es","en","pt"].map(l=>(
-            <button key={l} onClick={()=>setLang(l)} style={{padding:"4px 9px",border:"1px solid "+(lang===l?G:BD),borderRadius:4,background:lang===l?G+"12":"transparent",color:lang===l?G:MT,cursor:"pointer",fontSize:10,fontFamily:"IBM Plex Mono,monospace"}}>{l.toUpperCase()}</button>
+          {["es","en","pt","fr","de","zh"].map(l=>(
+            <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",border:"1px solid "+(lang===l?G:"#3a4060"),borderRadius:5,background:lang===l?G+"22":"#181a27",color:lang===l?G:"#9aaac8",cursor:"pointer",fontSize:10,fontWeight:lang===l?700:400,fontFamily:"IBM Plex Mono,monospace",letterSpacing:"0.06em"}}>{l.toUpperCase()}</button>
           ))}
         </div>
       </header>
