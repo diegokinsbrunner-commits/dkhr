@@ -33,13 +33,13 @@ const e = React.createElement;
 const {useState,useRef,useEffect} = React;
 
 // ── Tokens ────────────────────────────────────────────────────────
-const G="#4facf7",GL="#2e8fd6",TX="#eef0ff",MT="rgba(255,255,255,0.38)",DIM="rgba(255,255,255,0.5)";
+const G="#5bc8ff",GL="#4facf7",TX="#eef0ff",MT="rgba(255,255,255,0.38)",DIM="rgba(255,255,255,0.5)";
 const AX={D:"#4facf7",E:"#5b8ab0",P:"#7c6fbc",N:"#4d8a6c",A:"#a06848"};
 const AXL={D:"#2e8fd6",E:"#7aadd4",P:"#9d94e0",N:"#6aad8e",A:"#c48a6a"};
 const GLASS={background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,backdropFilter:"blur(20px)"};
 const CARD={...GLASS,padding:"24px 28px",marginBottom:14};
 const INP={width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"13px 16px",color:TX,fontSize:13,resize:"vertical",outline:"none",boxSizing:"border-box",WebkitTextFillColor:TX};
-const PBTN={padding:"12px 26px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:`linear-gradient(135deg,${G},${GL})`,color:"#030508",letterSpacing:"0.03em",boxShadow:"0 0 24px rgba(79,172,247,0.2)"};
+const PBTN={padding:"12px 26px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:G,color:"#030508",letterSpacing:"0.03em",boxShadow:"0 0 24px rgba(79,172,247,0.2)"};
 const GBTN={padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontSize:11,fontFamily:"'IBM Plex Mono',monospace"};
 const LBL={fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.65)",letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",display:"block",marginBottom:10};
 
@@ -456,7 +456,7 @@ function App(){
     // Header
     e("header",{style:{position:"fixed",top:0,left:0,right:0,zIndex:100,height:60,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.05)",background:"rgba(6,6,9,0.7)",backdropFilter:"blur(20px)"}},
       e("div",{style:{display:"flex",alignItems:"center",gap:10}},
-        e("span",{style:{fontSize:18,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",background:"linear-gradient(135deg,#4facf7,#7c6fbc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"0.2em"}},"DKHR"),
+        e("span",{style:{fontSize:18,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.2em"}},"DKHR"),
         ),
       e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
         e(LangPill,{lang,setLang}),
@@ -467,24 +467,24 @@ function App(){
         e("span",{style:{width:5,height:5,borderRadius:"50%",background:G,display:"inline-block",boxShadow:"0 0 6px "+G}}),
         e("span",{style:{fontSize:10,color:G,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.14em",textTransform:"uppercase"}},"AI-Powered HR Platform · Demo Mode")),
       e("h1",{style:{fontFamily:"'Cormorant Garamond',serif",lineHeight:.85,marginBottom:32}},
-        e("div",{style:{fontSize:"clamp(88px,15vw,172px)",fontWeight:700,background:"linear-gradient(135deg,#4facf7 0%,#7c6fbc 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}},"DK"),
+        e("div",{style:{fontSize:"clamp(88px,15vw,172px)",fontWeight:700,color:"#5bc8ff",letterSpacing:"-0.02em",textShadow:"0 0 40px rgba(91,200,255,0.5)"}},"DK"),
         e("div",{style:{fontSize:"clamp(88px,15vw,172px)",fontWeight:300,color:"rgba(238,240,255,0.9)",letterSpacing:"-0.02em",marginTop:-14}},"HR")),
       e("p",{style:{fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:20}},T("heroSub")),
       e("p",{style:{maxWidth:460,fontSize:15,color:"rgba(238,240,255,0.55)",lineHeight:1.85,marginBottom:44}},T("m1d").length>10?t(lang,"m1d"):"Automatizá tu área de RRHH con IA."),
       e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:16}},
-        e("button",{onClick:()=>setPage("app"),style:{padding:"15px 44px",borderRadius:12,background:"linear-gradient(135deg,#4facf7,#2e8fd6)",color:"#030508",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",letterSpacing:"0.06em",boxShadow:"0 0 40px rgba(79,172,247,0.22), 0 8px 32px rgba(79,172,247,0.12)"}},T("start")),
+        e("button",{onClick:()=>setPage("app"),style:{padding:"15px 44px",borderRadius:12,background:"#4facf7",color:"#030508",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",letterSpacing:"0.06em",boxShadow:"0 0 30px rgba(79,172,247,0.35)"}},T("start")),
         e("div",{style:{display:"flex",gap:20}},T("benefits").map(t=>e("span",{key:t,style:{fontSize:11,color:"rgba(255,255,255,0.75)",fontFamily:"'IBM Plex Mono',monospace"}},"✓ "+t)))),
       // Stats
       e("div",{style:{display:"flex",marginTop:64,borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)",background:"rgba(255,255,255,0.02)"}},
         [["4",T("statLabels")[0]],["6",T("statLabels")[1]],["∞",T("statLabels")[2]],["AI",T("statLabels")[3]]].map(([v,l],i)=>
           e("div",{key:i,style:{padding:"20px 32px",textAlign:"center",borderRight:i<3?"1px solid rgba(255,255,255,0.06)":"none"}},
-            e("div",{style:{fontSize:28,fontWeight:700,background:"linear-gradient(135deg,#4facf7,#7c6fbc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontFamily:"'Cormorant Garamond',serif"}},v),
+            e("div",{style:{fontSize:28,fontWeight:700,color:"#5bc8ff",fontFamily:"'Cormorant Garamond',serif"}},v),
             e("div",{style:{fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.1em",marginTop:4}},l))))),
     // Modules
     e("section",{style:{position:"relative",zIndex:1,maxWidth:960,margin:"0 auto",padding:"40px 24px 80px"}},
       e("div",{style:{textAlign:"center",marginBottom:52}},
         e("div",{style:{fontSize:10,color:"rgba(79,172,247,0.6)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}},T("modules")),
-        e("h2",{style:{fontSize:"clamp(28px,4vw,44px)",fontFamily:"'Cormorant Garamond',serif",fontWeight:600,background:"linear-gradient(135deg,#eef0ff,rgba(238,240,255,0.5))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},T("moduleTitle"))),
+        e("h2",{style:{fontSize:"clamp(28px,4vw,44px)",fontFamily:"'Cormorant Garamond',serif",fontWeight:600,color:"rgba(238,240,255,0.95)"}},T("moduleTitle"))),
       e("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:2}},
         [{n:"01",icon:"◈",title:T("m1t"),sub:"CV Analyzer",desc:T("m1d"),color:"#4facf7"},
          {n:"02",icon:"◇",title:T("m2t"),sub:"Document Generator",desc:T("m2d"),color:"#5b8ab0"},
@@ -501,7 +501,7 @@ function App(){
         e("button",{onClick:()=>setPage("app"),style:{padding:"13px 36px",borderRadius:10,border:"1px solid rgba(79,172,247,0.25)",background:"rgba(79,172,247,0.06)",color:G,fontSize:13,fontWeight:600,cursor:"pointer"}},T("tryBtn")))),
     // Footer
     e("footer",{style:{position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,0.05)",padding:"24px 40px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}},
-      e("span",{style:{fontSize:16,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",background:"linear-gradient(135deg,#4facf7,#7c6fbc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"0.18em"}},"DKHR"),
+      e("span",{style:{fontSize:16,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.18em"}},"DKHR"),
       e("div",{style:{display:"flex",gap:16}},["ES","EN","PT","FR","DE","ZH"].map(l=>e("span",{key:l,style:{fontSize:10,color:"rgba(255,255,255,0.55)",fontFamily:"'IBM Plex Mono',monospace"}},l))),
       e("span",{style:{fontSize:11,color:"rgba(255,255,255,0.55)",fontFamily:"'IBM Plex Mono',monospace"}},"Demo Mode · "+new Date().getFullYear()))
   );
@@ -512,7 +512,7 @@ function App(){
       e("div",{style:{display:"flex",alignItems:"center",gap:12}},
         e("button",{onClick:()=>setPage("landing"),style:{...GBTN,fontSize:10}},"← Inicio"),
         e("div",{style:{width:1,height:18,background:"rgba(255,255,255,0.08)"}}),
-        e("span",{style:{fontSize:17,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",background:"linear-gradient(135deg,#4facf7,#7c6fbc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"0.16em"}},"DKHR")),
+        e("span",{style:{fontSize:17,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.16em"}},"DKHR")),
       e(LangPill,{lang,setLang})),
     e("div",{style:{background:"rgba(160,104,72,0.07)",borderBottom:"1px solid rgba(160,104,72,0.12)",padding:"7px 20px",textAlign:"center"}},
       e("span",{style:{fontSize:10,color:"rgba(220,160,120,0.95)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.06em"}},T("demoNote"))),
